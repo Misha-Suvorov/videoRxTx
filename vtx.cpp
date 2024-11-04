@@ -5,12 +5,12 @@
 using namespace cv;
 
 int main() {
-    // Define the GStreamer pipeline and create VideoWriter
+    // Define the GStreamer pipeline with the target resolution
     cv::VideoWriter writer;
-    QString ipRTSPout = "appsrc ! videoconvert ! video/x-raw, format=NV12 ! mpph265enc bps=2000000 bps-max=2000000 ! rtph265pay config-interval=5 ! udpsink host=127.0.0.1 port=5620 "; // ALPHA
+    QString ipRTSPout = "appsrc ! videoconvert ! video/x-raw, format=NV12, width=960, height=540 ! mpph265enc bps=2000000 bps-max=2000000 ! rtph265pay config-interval=5 ! udpsink host=127.0.0.1 port=5620"; // ALPHA
 
-    // Initialize VideoWriter with pipeline and check if it opens
-    writer.open(ipRTSPout.toStdString(), 0, 30, Size(1280, 720));
+    // Initialize VideoWriter with the updated pipeline and check if it opens
+    writer.open(ipRTSPout.toStdString(), 0, 25, Size(960, 540));
     if (!writer.isOpened()) {
         printf("=ERR1= can't create video writer\n");
         return -1;
@@ -25,13 +25,12 @@ int main() {
 
     cap.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'));
     cap.set(CAP_PROP_FRAME_WIDTH, 1280);   // Set frame width
-    cap.set(CAP_PROP_FRAME_HEIGHT, 720);  // Set frame height
-    cap.set(CAP_PROP_FPS, 30);            // Set frame rate
+    cap.set(CAP_PROP_FRAME_HEIGHT, 720);   // Set frame height
+    cap.set(CAP_PROP_FPS, 25);             // Set frame rate
 
     bool isThreadRunning = true;
     cv::Mat frame;
-
-
+    cv::Mat resizedFrame; // Create a new Mat to hold the resized frame
 
     while (isThreadRunning) {
         // Capture a frame from the camera
@@ -43,8 +42,12 @@ int main() {
             break;
         }
 
-        writer.write(frame);  // Send the frame to the pipeline
-        QThread::msleep(35);  // Add a slight delay to control the frame rate
+        // Resize the frame to 960x540
+        cv::resize(frame, resizedFrame, Size(960, 540));
+
+        // Write the resized frame to the pipeline
+        writer.write(resizedFrame);
+        QThread::msleep(33);  // Adjust delay as necessary for smooth streaming
     }
 
     // Release resources when done
